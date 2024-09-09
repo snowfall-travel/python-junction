@@ -1,0 +1,3 @@
+aiohttp==3.10.5
+aiojobs==1.3.0
+mypy==1.11.2
