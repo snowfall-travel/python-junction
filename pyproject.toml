@@ -3,7 +3,7 @@ requires = ["setuptools>=46"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "otds"
+name = "junction"
 dependencies = ["aiohttp>=3.10,<4", "aiojobs>=1.3,<2"]
 description = "SDK for Junction"
 dynamic = ["version"]
