@@ -7,14 +7,32 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 import os
 import sys
+import re
 
 # Add the path to your SDK source code
 sys.path.insert(0, os.path.abspath('../../junction/'))
 
+# Get path for the file containing the version info
+init_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
+                              '../../junction/__init__.py')
+def get_version():
+    with open(init_file_path, 'r') as version_file:
+        # Construct a regex pattern for the version variable passed
+        pattern = re.compile(r'__version__\s*=\s*[\'"]([^\'"]+)[\'"]')
+        for line in version_file:
+            match = pattern.match(line)
+            if match:
+                return match.group(1)
+    raise RuntimeError("Unable to find version string.")
+    
+# Get the version
+version = get_version()
+print(version)  
+
 project = 'Junction API SDK'
 copyright = '2024, SnowfallTravel'
 author = 'SnowfallTravel'
-release = '1.0'
+release = version
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
