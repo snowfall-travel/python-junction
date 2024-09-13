@@ -27,7 +27,6 @@ def get_version():
     
 # Get the version
 version = get_version()
-print(version)  
 
 project = 'Junction API SDK'
 copyright = '2024, SnowfallTravel'
