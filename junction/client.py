@@ -148,6 +148,10 @@ class Booking:
 
 
 class JunctionClient:
+    '''
+    This is the JunctionClient. Use this class to make calls to the JunctionAPI. 
+    You can use this to do a search for places and the use the placeids to do FlightSearch, TrainSearch, etc.
+    '''
     def __init__(self, api_key: str):
         self._api_key = api_key
 
