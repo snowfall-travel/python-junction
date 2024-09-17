@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 from collections.abc import Sequence
 from datetime import date
-from typing import Literal, NewType, NotRequired, TypedDict
+from typing_extensions import Literal, NewType, NotRequired, TypedDict
 
 
 BookingId = NewType("BookingId", str)
