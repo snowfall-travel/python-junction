@@ -200,12 +200,14 @@ class JunctionClient:
         origin: t.PlaceId,
         destination: t.PlaceId,
         depart_after: datetime,
+        return_depart_after: datetime | None,
         passenger_birth_dates: Iterable[date]
     ) -> ResultsIterator[t.TrainOffer]:
         url = URL.build(scheme="https", host=HOST, path="/train-searches")
         ages = tuple({"dateOfBirth": d} for d in passenger_birth_dates)
         query = {"originId": origin, "destinationId": destination,
-                 "departureAfter": depart_after, "passengerAges": ages}
+                 "departureAfter": depart_after, "passengerAges": ages,
+                 "returnDepartureAfter": return_depart_after}
         async with self._client.post(url, json=query) as resp:
             if not resp.ok:
                 await raise_error(resp)
