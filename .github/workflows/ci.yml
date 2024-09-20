@@ -44,6 +44,7 @@ jobs:
 
   deploy:
     name: Deploy
+    environment: release
     permissions:
       id-token: write
       contents: write
