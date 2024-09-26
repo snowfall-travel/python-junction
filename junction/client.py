@@ -18,7 +18,8 @@ from junction import typedefs as t
 
 _T = TypeVar("_T")
 
-HOST = "content-api.junction.dev"
+PROD = "api.junction.travel"
+SANDBOX = "content-api.sandbox.junction.dev"
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -112,7 +113,7 @@ class Booking:
         return self._price
 
     async def confirm(self) -> None:
-        url = URL.build(scheme="https", host=HOST, path="/bookings")
+        url = URL.build(scheme="https", host=self._host, path="/bookings")
         body = {"offerId": self._offer, "passengers": self._passengers}
         async with self._client.post(url, json=body) as resp:
             if not resp.ok:
@@ -128,7 +129,7 @@ class Booking:
         if self._confirmed:
             raise RuntimeError("Booking already confirmed")
 
-        url = URL.build(scheme="https", host=HOST, path="/bookings")
+        url = URL.build(scheme="https", host=self._host, path="/bookings")
         body = {"offerId": self._offer, "passengers": self._passengers}
         #print(json.dumps(body, cls=CustomEncoder))
         async with self._client.post(url, json=body) as resp:
@@ -146,8 +147,9 @@ class JunctionClient:
     This is the JunctionClient. Use this class to make calls to the JunctionAPI. 
     You can use this to do a search for places and the use the placeids to do FlightSearch, TrainSearch, etc.
     '''
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, host: str = PROD):
         self._api_key = api_key
+        self._host = host
 
     def search_places(
         self,
@@ -169,7 +171,7 @@ class JunctionClient:
         if search_within is not None:
             query["query[placeToSearchWithin]"] = search_within
 
-        url = URL.build(scheme="https", host=HOST, path="/places", query=query)
+        url = URL.build(scheme="https", host=self._host, path="/places", query=query)
         return ResultsIterator[t.Place](self._client, self._scheduler, url)
 
     async def flight_search(
@@ -179,7 +181,7 @@ class JunctionClient:
         depart_after: datetime,
         passenger_birth_dates: Iterable[date]
     ) -> ResultsIterator[t.FlightOffer]:
-        url = URL.build(scheme="https", host=HOST, path="/flight-searches")
+        url = URL.build(scheme="https", host=self._host, path="/flight-searches")
         ages = tuple({"dateOfBirth": d} for d in passenger_birth_dates)
         query = {"originId": origin, "destinationId": destination,
                  "departureAfter": depart_after, "passengerAges": ages}
@@ -197,7 +199,7 @@ class JunctionClient:
         return_depart_after: datetime | None,
         passenger_birth_dates: Iterable[date]
     ) -> ResultsIterator[t.TrainOffer]:
-        url = URL.build(scheme="https", host=HOST, path="/train-searches")
+        url = URL.build(scheme="https", host=self._host, path="/train-searches")
         ages = tuple({"dateOfBirth": d} for d in passenger_birth_dates)
         query = {"originId": origin, "destinationId": destination,
                  "departureAfter": depart_after, "passengerAges": ages,
