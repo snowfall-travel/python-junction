@@ -158,7 +158,7 @@ class JunctionClient:
     def search_places(
         self,
         name_like: str | None = None,
-        place_type: t.PlaceType | None = None,
+        place_types: Iterable[t.PlaceType] | None = None,
         iata: str | None = None,
         coords: tuple[float, float, int] | None = None,
         search_within: t.PlaceId | None = None
@@ -166,8 +166,8 @@ class JunctionClient:
         query: dict[str, int | str] = {"page[limit]": 100}
         if name_like is not None:
             query["filter[name][like]"] = name_like
-        if place_type is not None:
-            query["filter[type][eq]"] = place_type
+        if place_types is not None:
+            query["filter[type][eq]"] = ",".join(place_types)
         if iata is not None:
             query["filter[iata][eq]"] = iata
         if coords is not None:
