@@ -8,5 +8,6 @@ from junction import SANDBOX, JunctionClient
 @pytest.fixture
 async def client() -> AsyncIterator[JunctionClient]:
     key = os.environ["JUNCTION_API_KEY"]
+    assert key
     async with JunctionClient(key, SANDBOX) as client:
         yield client
