@@ -63,6 +63,9 @@ jobs:
       uses: py-actions/py-dependency-install@v4
       with:
         path: requirements.txt
+    - name: Install itself
+      run: |
+        pip install .
     - name: Run unittests
       run: pytest tests/
       env:
