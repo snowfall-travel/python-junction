@@ -70,6 +70,7 @@ jobs:
       run: pytest
       env:
         COLOR: 'yes'
+        JUNCTION_API_KEY: ${{ secrets.JUNCTION_API_KEY }}
     - run: python -m coverage xml
     - name: Upload coverage
       uses: codecov/codecov-action@v4
