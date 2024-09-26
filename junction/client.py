@@ -7,18 +7,13 @@ from datetime import date, datetime
 from functools import partial
 from textwrap import indent
 from types import TracebackType
-from typing import Any, Generic, NoReturn, TypeVar
+from typing import Any, Generic, NoReturn, Self, TypeVar
 
 import aiojobs
 from aiohttp import ClientResponse, ClientResponseError, ClientSession, ContentTypeError
 from yarl import URL
 
 from junction import typedefs as t
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing import Any as Self
 
 
 _T = TypeVar("_T")
