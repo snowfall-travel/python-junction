@@ -90,8 +90,9 @@ class ResultsIterator(Generic[_T]):
 class Booking:
     _id: t.BookingId
 
-    def __init__(self, client: ClientSession, offer: t.OfferId, passengers: tuple[t.Passenger, ...]):
+    def __init__(self, client: ClientSession, offer: t.OfferId, passengers: tuple[t.Passenger, ...], host: str = PROD):
         self._client = client
+        self._host = host  # TODO: Use base_url in ClientSession and remove host parameter here.
         self._offer = offer
         self._passengers = passengers
         self._confirmed = False
