@@ -15,7 +15,6 @@ from yarl import URL
 
 from junction import typedefs as t
 
-# Requires 3.10+
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
