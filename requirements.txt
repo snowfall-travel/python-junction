@@ -4,4 +4,5 @@ coverage==7.6.1
 mypy==1.11.2
 pytest==8.3.3
 pytest-aiohttp==1.0.5
+pytest-asyncio==0.24
 pytest-cov==5.0.0
