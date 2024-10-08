@@ -8,7 +8,7 @@ async def test_cancellation(client: JunctionClient) -> None:
     day = datetime.date.today() + datetime.timedelta(days=7)
     depart = datetime.datetime.combine(day, datetime.time(12, 30), datetime.UTC)
     birth = datetime.date(2000, 1, 1)
-    offer = await anext(await client.train_search(orig, dest, depart, (birth,)))
+    offer = await anext(await client.train_search(orig, dest, depart, None, (birth,)))
 
     passenger: Passenger = {
         "dateOfBirth": birth,
