@@ -212,7 +212,7 @@ class JunctionClient:
         return ResultsIterator[t.TrainOffer](self._client, self._scheduler, next_url)
 
     async def create_booking(self, offer: t.OfferId, passengers: Iterable[t.Passenger]) -> Booking:
-        booking = Booking(self._client, offer, tuple(passengers))
+        booking = Booking(self._client, offer, tuple(passengers), host=self._host)
         await booking.refresh()
         return booking
 
