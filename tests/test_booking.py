@@ -3,8 +3,8 @@ import datetime
 from junction import JunctionClient, Passenger
 
 async def test_cancellation(client: JunctionClient) -> None:
-    orig = "place_01j44f6jw3erbr4rgna3xdtvxn"
-    dest = "place_01j44f3vfje1pbbr16etj2s26c"
+    orig = "place_01j804c5h1ew3ask9eh2znw3pz"
+    dest = "place_01j804922hfcws9mffxbj8tsv3"
     day = datetime.date.today() + datetime.timedelta(days=7)
     depart = datetime.datetime.combine(day, datetime.time(12, 30), datetime.UTC)
     birth = datetime.date(2000, 1, 1)
