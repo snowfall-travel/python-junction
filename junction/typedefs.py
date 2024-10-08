@@ -136,6 +136,6 @@ class Passenger(TypedDict):
 
 
 class RefundInformation(TypedDict):
-    status = Literal["requested", "confirmed"]
-    bookingPrice = _Price
-    refundAmount = _Price
+    status: Literal["requested", "confirmed"]
+    bookingPrice: _Price
+    refundAmount: _Price
