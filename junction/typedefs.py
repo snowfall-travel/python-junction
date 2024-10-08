@@ -133,3 +133,9 @@ class Passenger(TypedDict):
     phoneNumber: str
     passportInformation: _PassportInformation
     residentialAddress: _Address
+
+
+class RefundInformation(TypedDict):
+    status = Literal["requested", "confirmed"]
+    bookingPrice = _Price
+    refundAmount = _Price

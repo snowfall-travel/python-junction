@@ -216,6 +216,24 @@ class JunctionClient:
         await booking.refresh()
         return booking
 
+    async def cancel_booking(self, booking_id: t.BookingId) -> t.RefundInformation:
+        path = f"/bookings/{booking_id}/request-cancellation"
+        url = URL.build(scheme="https", host=self._host, path=path)
+        async with self._client.post(url):
+            if not resp.ok:
+                await raise_error(resp)
+            result = await resp.json()
+        return result["refundInformation"]
+
+    async def cancel_booking_confirm(self, booking_id: t.BookingId) -> t.RefundInformation:
+        path = f"/bookings/{booking_id}/confirm-cancellation"
+        url = URL.build(scheme="https", host=self._host, path=path)
+        async with self._client.post(url):
+            if not resp.ok:
+                await raise_error(resp)
+            result = await resp.json()
+        return result["refundInformation"]
+
     async def __aenter__(self) -> Self:
         self._client = ClientSession(headers={"x-api-key": self._api_key}, json_serialize=partial(json.dumps, cls=CustomEncoder))
         self._scheduler = aiojobs.Scheduler(wait_timeout=0)
