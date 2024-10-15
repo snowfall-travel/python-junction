@@ -4,7 +4,7 @@ from junction import JunctionClient, Passenger, PlaceId
 
 async def test_cancellation(client: JunctionClient) -> None:
     orig = PlaceId("place_01j804c5h1ew3ask9eh2znw3pz")
-    dest = PlaceId("place_01j804922hfcws9mffxbj8tsv3")
+    dest = PlaceId("place_01j804pa0ffcrva5gpd21nmqhk")
     day = datetime.date.today() + datetime.timedelta(days=7)
     depart = datetime.datetime.combine(day, datetime.time(12, 30), datetime.UTC)
     birth = datetime.date(2000, 1, 1)
