@@ -103,6 +103,7 @@ class ResultsIterator(Generic[_T]):
 
 class Booking:
     _id: t.BookingId
+    _status: t.BookingStatus
     _ticket: t.Ticket
     _fare_rules: tuple[t.FareRule, ...]
     _fulfillment: tuple[t.Fulfillment, ...]
@@ -139,6 +140,10 @@ class Booking:
         return self._price
 
     @property
+    def status(self) -> t.BookingStatus:
+        return self._status
+
+    @property
     def ticket(self) -> t.Ticket:
         return self._ticket
 
@@ -149,6 +154,7 @@ class Booking:
         self._fare_rules = tuple(booking["fareRules"])
         self._passengers = tuple(booking["passengers"])
         self._price = (booking["price"]["amount"], booking["price"]["currency"])
+        self._status = booking["status"]
         self._ticket = booking["ticketInformation"]
 
     async def confirm(self, fulfillment: Sequence[t.DeliveryOption]) -> t.BookingPaymentStatus:

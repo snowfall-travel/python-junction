@@ -5,6 +5,8 @@ from typing import Literal, NewType, NotRequired, TypedDict
 
 BookingId = NewType("BookingId", str)
 BookingPaymentStatus = Literal["requested", "confirmed"]
+BookingStatus = Literal["pending", "confirmed", "rejected", "not-ticketed", "error",
+                        "cancelled", "fulfilled"]
 CountryCode = NewType("CountryCode", str)  # 2 character ISO 3166-1
 Currency = NewType("Currency", str)  # 3 character ISO 4217
 DateTime = NewType("DateTime", str)  # RFC 3339
