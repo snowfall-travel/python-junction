@@ -36,12 +36,12 @@ async def test_cancellation(client: JunctionClient) -> None:
     await booking.confirm(tuple(f["deliveryOptions"][0] for f in booking.fulfillment))
     assert booking.confirmed
 
-    refund = await client.cancel_booking(booking.id)  # type: ignore[unreachable]
-    assert refund["status"] == "requested"
-    assert float(refund["bookingPrice"]["amount"]) > 0
-    refund_amount = refund["refundAmount"]["amount"]
+    cancellation = await client.cancel_booking(booking.id)  # type: ignore[unreachable]
+    assert cancellation.refund["status"] == "requested"
+    assert float(cancellation.refund["bookingPrice"]["amount"]) > 0
+    refund_amount = cancellation.refund["refundAmount"]["amount"]
     assert float(refund_amount) > 0
 
-    refund = await client.cancel_booking_confirm(cancellation_id)
-    assert refund["status"] == "confirmed"
-    assert refund["refundAmount"]["amount"] == refund_amount
+    await cancellation.confirm()
+    assert cancellation.refund["status"] == "confirmed"
+    assert cancellation.refund["refundAmount"]["amount"] == refund_amount
