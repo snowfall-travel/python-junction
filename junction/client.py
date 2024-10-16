@@ -62,6 +62,7 @@ class Cancellation:
 
     def __init__(self, client: ClientSession, booking_id: t.BookingId, host: str = PROD):
         self._booking_id = booking_id
+        self._client = client
         self._confirmed = False
         self._host = host  # TODO: Use base_url in ClientSession and remove host parameter here.
 
