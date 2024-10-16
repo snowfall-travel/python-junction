@@ -26,7 +26,7 @@ class _Booking(TypedDict):
     id: t.BookingId
     status: t.BookingStatus
     passengers: list[t.Passenger]
-    price: t.Price
+    price: t._Price
     ticketInformation: list[t.Ticket]
     fareRules: list[t.FareRule]
 
