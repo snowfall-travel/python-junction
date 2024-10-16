@@ -73,7 +73,7 @@ class Cancellation:
     def refund(self) -> t.RefundInformation:
         return self._refund
 
-    def confirm(self) -> None:
+    async def confirm(self) -> None:
         path = f"/cancellations/{self._id}/confirm"
         url = URL.build(scheme="https", host=self._host, path=path)
         async with self._client.post(url) as resp:
@@ -82,7 +82,7 @@ class Cancellation:
             result = await resp.json()
             self._refund = result["refundInformation"]
 
-    def recreate(self) -> None:
+    async def recreate(self) -> None:
         if self._confirmed:
             raise RuntimeError("Booking already confirmed")
 
