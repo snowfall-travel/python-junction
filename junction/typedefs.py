@@ -4,9 +4,11 @@ from typing import Literal, NewType, NotRequired, TypedDict
 
 
 BookingId = NewType("BookingId", str)
+BookingPaymentStatus = Literal["requested", "confirmed"]
 CountryCode = NewType("CountryCode", str)  # 2 character ISO 3166-1
 Currency = NewType("Currency", str)  # 3 character ISO 4217
 DateTime = NewType("DateTime", str)  # RFC 3339
+DeliveryOption = Literal["electronic-ticket", "kiosk-collect"]
 FlightOfferId = NewType("FlightOfferId", str)
 IataCode = NewType("IataCode", str)  # [A-Z]{3}
 PlaceId = NewType("PlaceId", str)
@@ -109,6 +111,16 @@ class TrainOffer(_Offer):
     segments: list[_TrainSegment]
 
 
+class FareRule(TypedDict):
+    title: str
+    body: str
+
+
+class Fulfillment(TypedDict):
+    deliveryOptions: DeliveryOption
+    segmentSequence: int
+
+
 class _Address(TypedDict):
     addressLines: Sequence[str]
     countryCode: str  # 2 letter country code
@@ -139,3 +151,9 @@ class RefundInformation(TypedDict):
     status: Literal["requested", "confirmed"]
     bookingPrice: _Price
     refundAmount: _Price
+
+
+class Ticket(TypedDict):
+    status: Literal["pending", "fulfilled"]
+    ticketUrl: str | None
+    collectionReference: str | None

@@ -2,12 +2,12 @@ import asyncio
 import json
 import sys
 from collections import deque
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import date, datetime
 from functools import partial
 from textwrap import indent
 from types import TracebackType
-from typing import Any, Generic, NoReturn, Self, TypeVar
+from typing import Any, Generic, NoReturn, Self, TypedDict, TypeVar
 
 import aiojobs
 from aiohttp import ClientResponse, ClientResponseError, ClientSession, ContentTypeError
@@ -20,6 +20,20 @@ _T = TypeVar("_T")
 
 PROD = "api.junction.travel"
 SANDBOX = "content-api.sandbox.junction.dev"
+
+
+class _Booking(TypedDict):
+    id: t.BookingId
+    status: t.BookingStatus
+    passengers: list[t.Passenger]
+    price: t.Price
+    ticketInformation: list[t.Ticket]
+    fareRules: list[t.FareRule]
+
+
+class _BookingResult(TypedDict):
+    booking: list[_Booking]
+    fulfillmentInformation: list[t.Fulfillment]
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -89,6 +103,9 @@ class ResultsIterator(Generic[_T]):
 
 class Booking:
     _id: t.BookingId
+    _ticket: t.Ticket
+    _fare_rules: tuple[t.FareRule, ...]
+    _fulfillment: tuple[t.Fulfillment, ...]
 
     def __init__(self, client: ClientSession, offer: t.OfferId, passengers: tuple[t.Passenger, ...], host: str = PROD):
         self._client = client
@@ -102,6 +119,14 @@ class Booking:
         return self._confirmed
 
     @property
+    def fare_rules(self) -> tuple[t.FareRule, ...]:
+        return self._fare_rules
+
+    @property
+    def fulfillment(self) -> tuple[t.Fulfillment, ...]:
+        return self._fulfillment
+
+    @property
     def id(self) -> t.BookingId:
         return self._id
 
@@ -113,18 +138,33 @@ class Booking:
     def price(self) -> tuple[str, str]:
         return self._price
 
-    async def confirm(self) -> None:
-        url = URL.build(scheme="https", host=self._host, path="/bookings")
-        body = {"offerId": self._offer, "passengers": self._passengers}
+    @property
+    def ticket(self) -> t.Ticket:
+        return self._ticket
+
+    def _update_attrs(self, result: _BookingResult) -> None:
+        self._fulfillment = tuple(result["fulfillmentInformation"])
+        booking = result["booking"]
+        self._id = booking["id"]
+        self._fare_rules = tuple(booking["fareRules"])
+        self._passengers = tuple(booking["passengers"])
+        self._price = (booking["price"]["amount"], booking["price"]["currency"])
+        self._ticket = booking["ticketInformation"]
+
+    async def confirm(self, fulfillment: Sequence[t.DeliveryOption]) -> t.BookingPaymentStatus:
+        if len(fulfillment) != len(self._fulfillment):
+            raise ValueError("Wrong number of fillment choices")
+
+        url = URL.build(scheme="https", host=self._host, path=f"/bookings/{self._id}/confirm")
+        body = {"fulfillmentChoices": tuple({"deliveryOption": c, "segmentSequence": f["segmentSequence"]} for f, c in zip(self._fulfillment, fulfillment))}
         async with self._client.post(url, json=body) as resp:
             if not resp.ok:
                 await raise_error(resp)
 
             result = await resp.json()
-            self._id = result["id"]
-            self._passengers = result["passengers"]
-            self._price = (result["price"]["amount"], result["price"]["currency"])
+            self._update_attrs(result)
             self._confirmed = True
+        return result["paymentStatus"]
 
     async def refresh(self) -> None:
         if self._confirmed:
@@ -132,15 +172,12 @@ class Booking:
 
         url = URL.build(scheme="https", host=self._host, path="/bookings")
         body = {"offerId": self._offer, "passengers": self._passengers}
-        #print(json.dumps(body, cls=CustomEncoder))
         async with self._client.post(url, json=body) as resp:
             if not resp.ok:
                 await raise_error(resp)
 
             result = await resp.json()
-            self._id = result["id"]
-            self._passengers = result["passengers"]
-            self._price = (result["price"]["amount"], result["price"]["currency"])
+            self._update_attrs(result)
 
 
 class JunctionClient:
