@@ -147,16 +147,6 @@ class Booking:
     def ticket(self) -> t.Ticket:
         return self._ticket
 
-    def _update_attrs(self, result: _BookingResult) -> None:
-        self._fulfillment = tuple(result["fulfillmentInformation"])
-        booking = result["booking"]
-        self._id = booking["id"]
-        self._fare_rules = tuple(booking["fareRules"])
-        self._passengers = tuple(booking["passengers"])
-        self._price = (booking["price"]["amount"], booking["price"]["currency"])
-        self._status = booking["status"]
-        self._ticket = booking["ticketInformation"]
-
     async def confirm(self, fulfillment: Sequence[t.DeliveryOption]) -> t.BookingPaymentStatus:
         if len(fulfillment) != len(self._fulfillment):
             raise ValueError("Wrong number of fillment choices")
@@ -168,7 +158,6 @@ class Booking:
                 await raise_error(resp)
 
             result = await resp.json()
-            self._update_attrs(result)
             self._confirmed = True
         return result["paymentStatus"]
 
@@ -182,8 +171,15 @@ class Booking:
             if not resp.ok:
                 await raise_error(resp)
 
-            result = await resp.json()
-            self._update_attrs(result)
+            result: _BookingResult = await resp.json()
+            self._fulfillment = tuple(result["fulfillmentInformation"])
+            booking = result["booking"]
+            self._id = booking["id"]
+            self._fare_rules = tuple(booking["fareRules"])
+            self._passengers = tuple(booking["passengers"])
+            self._price = (booking["price"]["amount"], booking["price"]["currency"])
+            self._status = booking["status"]
+            self._ticket = booking["ticketInformation"]
 
 
 class JunctionClient:
