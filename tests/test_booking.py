@@ -33,7 +33,7 @@ async def test_cancellation(client: JunctionClient) -> None:
     }
     booking = await client.create_booking(offer["id"], (passenger,))
     assert not booking.confirmed
-    await booking.confirm(tuple(f["deliveryOption"][0] for f in booking.fulfillment))
+    await booking.confirm(tuple(f["deliveryOptions"][0] for f in booking.fulfillment))
     assert booking.confirmed
 
     refund = await client.cancel_booking(booking.id)  # type: ignore[unreachable]
