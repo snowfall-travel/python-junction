@@ -142,87 +142,6 @@ class ResultsIterator(Generic[_T]):
         return self._results.popleft()
 
 
-class Booking:
-    _id: t.BookingId
-    _status: t.BookingStatus
-    _ticket: t.Ticket
-    _fare_rules: tuple[t.FareRule, ...]
-    _fulfillment: tuple[t.Fulfillment, ...]
-
-    def __init__(self, client: ClientSession, offer: t.OfferId, passengers: tuple[t.Passenger, ...], host: str = PROD):
-        self._client = client
-        self._host = host  # TODO: Use base_url in ClientSession and remove host parameter here.
-        self._offer = offer
-        self._passengers = passengers
-        self._confirmed = False
-
-    @property
-    def confirmed(self) -> bool:
-        return self._confirmed
-
-    @property
-    def fare_rules(self) -> tuple[t.FareRule, ...]:
-        return self._fare_rules
-
-    @property
-    def fulfillment(self) -> tuple[t.Fulfillment, ...]:
-        return self._fulfillment
-
-    @property
-    def id(self) -> t.BookingId:
-        return self._id
-
-    @property
-    def passengers(self) -> tuple[t.Passenger, ...]:
-        return self._passengers
-
-    @property
-    def price(self) -> tuple[str, str]:
-        return self._price
-
-    @property
-    def status(self) -> t.BookingStatus:
-        return self._status
-
-    @property
-    def ticket(self) -> t.Ticket:
-        return self._ticket
-
-    async def confirm(self, fulfillment: Sequence[t.DeliveryOption]) -> t.BookingPaymentStatus:
-        if len(fulfillment) != len(self._fulfillment):
-            raise ValueError("Wrong number of fillment choices")
-
-        url = URL.build(scheme="https", host=self._host, path=f"/bookings/{self._id}/confirm")
-        body = {"fulfillmentChoices": tuple({"deliveryOption": c, "segmentSequence": f["segmentSequence"]} for f, c in zip(self._fulfillment, fulfillment))}
-        async with self._client.post(url, json=body) as resp:
-            if not resp.ok:
-                await raise_error(resp)
-
-            result = await resp.json()
-            self._confirmed = True
-        return result["paymentStatus"]
-
-    async def recreate(self) -> None:
-        if self._confirmed:
-            raise RuntimeError("Booking already confirmed")
-
-        url = URL.build(scheme="https", host=self._host, path="/bookings")
-        body = {"offerId": self._offer, "passengers": self._passengers}
-        async with self._client.post(url, json=body) as resp:
-            if not resp.ok:
-                await raise_error(resp)
-
-            result: _BookingResult = await resp.json()
-            self._fulfillment = tuple(result["fulfillmentInformation"])
-            booking = result["booking"]
-            self._id = booking["id"]
-            self._fare_rules = tuple(booking["fareRules"])
-            self._passengers = tuple(booking["passengers"])
-            self._price = (booking["price"]["amount"], booking["price"]["currency"])
-            self._status = booking["status"]
-            self._ticket = booking["ticketInformation"]
-
-
 class JunctionClient:
     '''
     This is the JunctionClient. Use this class to make calls to the JunctionAPI. 
@@ -291,10 +210,28 @@ class JunctionClient:
             next_url = resp.headers["Location"]
         return ResultsIterator[t.TrainOffer](self._client, self._scheduler, next_url)
 
-    async def create_booking(self, offer: t.OfferId, passengers: Iterable[t.Passenger]) -> Booking:
-        booking = Booking(self._client, offer, tuple(passengers), host=self._host)
-        await booking.recreate()
-        return booking
+    async def create_booking(self, offer: t.OfferId, passengers: Iterable[t.Passenger]) -> Any:
+        url = URL.build(scheme="https", host=self._host, path="/bookings")
+        body = {"offerId": self._offer, "passengers": self._passengers}
+        async with self._client.post(url, json=body) as resp:
+            return await resp.json()
+
+    async def confirm_booking(self, booking_id: t.BookingId, fulfillment: Sequence[tuple[t.DeliveryOption, int]]) -> t.BookingPaymentStatus:
+        url = URL.build(scheme="https", host=self._host, path=f"/bookings/{booking_id}/confirm")
+        body = {"fulfillmentChoices": tuple({"deliveryOption": d, "segmentSequence": s} for d, s in fulfillment)}
+        async with self._client.post(url, json=body) as resp:
+            if not resp.ok:
+                await raise_error(resp)
+
+            result = await resp.json()
+        return result["paymentStatus"]
+
+    async def get_booking(self, booking_id: t.BookingId) -> Any:
+        url = URL.build(scheme="https", host=self._host, path=f"/bookings/f{booking_id}")
+        async with self._client.get(url) as resp:
+            if not resp.ok:
+                await raise_error(resp)
+            return await resp.json()
 
     async def cancel_booking(self, booking_id: t.BookingId) -> Cancellation:
         cancellation = Cancellation(self._client, booking_id, host=self._host)
