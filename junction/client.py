@@ -212,7 +212,7 @@ class JunctionClient:
 
     async def create_booking(self, offer: t.OfferId, passengers: Iterable[t.Passenger]) -> Any:
         url = URL.build(scheme="https", host=self._host, path="/bookings")
-        body = {"offerId": self._offer, "passengers": self._passengers}
+        body = {"offerId": offer, "passengers": passengers}
         async with self._client.post(url, json=body) as resp:
             return await resp.json()
 
