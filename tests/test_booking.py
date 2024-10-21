@@ -32,7 +32,7 @@ async def test_cancellation(client: JunctionClient) -> None:
         }
     }
     booking = await client.create_booking(offer["id"], (passenger,))
-    await client.confirm_booking(booking["booking"]["id"], tuple(f["deliveryOptions"][0] for f in booking["fulfillmentInformation"]))
+    await client.confirm_booking(booking["booking"]["id"], tuple((f["deliveryOptions"][0], f["segmentSequence"]) for f in booking["fulfillmentInformation"]))
 
     cancellation = await client.cancel_booking(booking["booking"]["id"])
     assert cancellation.refund["status"] == "requested"
