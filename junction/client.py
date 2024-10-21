@@ -215,7 +215,7 @@ class JunctionClient:
         body = {"offerId": offer, "passengers": passengers}
         async with self._client.post(url, json=body) as resp:
             if not resp.ok:
-                await raise_error(msg)
+                await raise_error(resp)
             return await resp.json()
 
     async def confirm_booking(self, booking_id: t.BookingId, fulfillment: Sequence[tuple[t.DeliveryOption, int]]) -> t.BookingPaymentStatus:
@@ -229,7 +229,7 @@ class JunctionClient:
         return result["paymentStatus"]
 
     async def get_booking(self, booking_id: t.BookingId) -> Any:
-        url = URL.build(scheme="https", host=self._host, path=f"/bookings/f{booking_id}")
+        url = URL.build(scheme="https", host=self._host, path=f"/bookings/{booking_id}")
         async with self._client.get(url) as resp:
             if not resp.ok:
                 await raise_error(resp)
