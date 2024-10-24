@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from datetime import date
-from typing import Literal, NewType, NotRequired, TypedDict
+from typing import Any, Literal, NewType, NotRequired, TypedDict
 
 
 BookingId = NewType("BookingId", str)
@@ -112,6 +112,7 @@ class FlightOffer(_Offer):
 class TrainOffer(_Offer):
     id: TrainOfferId
     segments: list[_TrainSegment]
+    metadata: dict[str, Any]
 
 
 class FareRule(TypedDict):
