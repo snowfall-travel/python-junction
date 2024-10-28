@@ -1,2 +1,2 @@
 furo==2024.8.6
-sphinx-autoapi==3.3.2
+sphinx-autoapi==3.3.3
