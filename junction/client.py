@@ -151,6 +151,13 @@ class JunctionClient:
         self._api_key = api_key
         self._host = host
 
+    def get_place(self, place_id: t.PlaceId) -> t.Place:
+        url = URL.build(scheme="https", host=self._host, path=f"/places/{place_id}")
+        async with self._client.get(url) as resp:
+            if not resp.ok:
+                await raise_error(resp)
+            return await resp.json()
+
     def search_places(
         self,
         name_like: str | None = None,
