@@ -147,7 +147,7 @@ class Passenger(TypedDict):
     gender: Literal["male", "female"]
     email: str
     phoneNumber: str
-    passportInformation: _PassportInformation
+    passportInformation: _PassportInformation | None
     residentialAddress: _Address
 
 
