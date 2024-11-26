@@ -195,7 +195,7 @@ class JunctionClient:
         async with self._client.post(url, json=query) as resp:
             if not resp.ok:
                 await raise_error(resp)
-            next_url = resp.headers["Location"]
+            next_url = URL(resp.headers["Location"], encoded=True).extend_query(expand="place")
         return ResultsIterator[t.FlightOffer](self._client, self._scheduler, next_url)
 
     async def train_search(
@@ -214,7 +214,7 @@ class JunctionClient:
         async with self._client.post(url, json=query) as resp:
             if not resp.ok:
                 await raise_error(resp)
-            next_url = resp.headers["Location"]
+            next_url = URL(resp.headers["Location"], encoded=True).extend_query(expand="place")
         return ResultsIterator[t.TrainOffer](self._client, self._scheduler, next_url)
 
     async def create_booking(self, offer: t.OfferId, passengers: Iterable[t.Passenger]) -> Any:
