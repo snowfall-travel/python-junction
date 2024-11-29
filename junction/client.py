@@ -222,8 +222,8 @@ class JunctionClient:
             next_url = URL(resp.headers["Location"], encoded=True).extend_query(expand="place")
         return ResultsIterator[t.TrainOffer](self._client, self._scheduler, next_url)
 
-    async def search_from_id(self, search_id: Any) -> ResultIterator:
-        return ResultIterator(self._client, self._scheduler, base64.b64decode(search_id.encode()).decode())
+    async def search_from_id(self, search_id: Any) -> ResultsIterator:
+        return ResultsIterator(self._client, self._scheduler, base64.b64decode(search_id.encode()).decode())
 
     async def create_booking(self, offer: t.OfferId, passengers: Iterable[t.Passenger]) -> Any:
         url = URL.build(scheme="https", host=self._host, path="/bookings")
