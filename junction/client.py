@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import sys
 from collections import deque
@@ -103,7 +104,11 @@ class ResultsIterator(Generic[_T]):
         self._scheduler = scheduler
         self._results: deque[_T] = deque()
         self._task: aiojobs.Job[None] | None = None
-        self._next = next_url
+        self._next = self._id = next_url
+
+    @property
+    def id(self) -> str:
+        return base64.b64encode(self._id.encode()).decode()
 
     async def start(self) -> None:
         assert self._next and not self._task
@@ -216,6 +221,9 @@ class JunctionClient:
                 await raise_error(resp)
             next_url = URL(resp.headers["Location"], encoded=True).extend_query(expand="place")
         return ResultsIterator[t.TrainOffer](self._client, self._scheduler, next_url)
+
+    async def search_from_id(self, search_id: Any) -> ResultIterator:
+        return ResultIterator(self._client, self._scheduler, base64.b64decode(search_id.encode()).decode())
 
     async def create_booking(self, offer: t.OfferId, passengers: Iterable[t.Passenger]) -> Any:
         url = URL.build(scheme="https", host=self._host, path="/bookings")
