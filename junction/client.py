@@ -104,11 +104,12 @@ class ResultsIterator(Generic[_T]):
         self._scheduler = scheduler
         self._results: deque[_T] = deque()
         self._task: aiojobs.Job[None] | None = None
-        self._next = self._id = next_url
+        self._next = next_url
+        self._id = str(next_url)
 
     @property
     def id(self) -> str:
-        return base64.b64encode(self._id.encode()).decode()
+        return base64.urlsafe_b64encode(self._id.encode()).decode()
 
     async def start(self) -> None:
         assert self._next and not self._task
@@ -223,7 +224,7 @@ class JunctionClient:
         return ResultsIterator[t.TrainOffer](self._client, self._scheduler, next_url)
 
     async def search_from_id(self, search_id: Any) -> ResultsIterator:
-        return ResultsIterator(self._client, self._scheduler, base64.b64decode(search_id.encode()).decode())
+        return ResultsIterator(self._client, self._scheduler, base64.urlsafe_b64decode(search_id.encode()).decode())
 
     async def create_booking(self, offer: t.OfferId, passengers: Iterable[t.Passenger]) -> Any:
         url = URL.build(scheme="https", host=self._host, path="/bookings")
