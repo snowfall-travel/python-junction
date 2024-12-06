@@ -223,6 +223,15 @@ class JunctionClient:
             next_url = URL(resp.headers["Location"], encoded=True).extend_query(expand="place")
         return ResultsIterator[t.TrainOffer](self._client, self._scheduler, next_url)
 
+    def get_train_offers(self, search_id: Any, outbound: t.TrainOfferId | None = None) -> ResultsIterator:
+        query = {"page[limit]": 100, "expand": "place"}
+        if outbound:
+            query["trainOfferId"] = outbound
+        #path = f"/train-searches/{search_id}/offers"
+        #url = URL.build(scheme="https", host=self._host, path=path, query=query)
+        url = URL(base64.urlsafe_b64decode(search_id.encode()).decode(), encoded=True).extend_query(query)
+        return ResultsIterator(self._client, self._scheduler, url)
+
     async def search_from_id(self, search_id: Any) -> ResultsIterator:
         return ResultsIterator(self._client, self._scheduler, base64.urlsafe_b64decode(search_id.encode()).decode())
 
