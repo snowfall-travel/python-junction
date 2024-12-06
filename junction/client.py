@@ -1,13 +1,14 @@
 import asyncio
+import base64
 import json
 import sys
 from collections import deque
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from datetime import date, datetime
 from functools import partial
 from textwrap import indent
 from types import TracebackType
-from typing import Any, Generic, NoReturn, Self, TypeVar
+from typing import Any, Generic, NoReturn, Self, TypedDict, TypeVar
 
 import aiojobs
 from aiohttp import ClientResponse, ClientResponseError, ClientSession, ContentTypeError
@@ -20,6 +21,20 @@ _T = TypeVar("_T")
 
 PROD = "api.junction.travel"
 SANDBOX = "content-api.sandbox.junction.dev"
+
+
+class _Booking(TypedDict):
+    id: t.BookingId
+    status: t.BookingStatus
+    passengers: list[t.Passenger]
+    price: t._Price
+    ticketInformation: list[t.Ticket]
+    fareRules: list[t.FareRule]
+
+
+class _BookingResult(TypedDict):
+    booking: list[_Booking]
+    fulfillmentInformation: list[t.Fulfillment]
 
 
 class CustomEncoder(json.JSONEncoder):
@@ -42,6 +57,47 @@ async def raise_error(resp: ClientResponse) -> NoReturn:
     raise ClientResponseError(resp.request_info, resp.history, status=resp.status, message=msg, headers=resp.headers)
 
 
+class Cancellation:
+    _id: t.CancellationId
+    _refund: t.RefundInformation
+
+    def __init__(self, client: ClientSession, booking_id: t.BookingId, host: str = PROD):
+        self._booking_id = booking_id
+        self._client = client
+        self._confirmed = False
+        self._host = host  # TODO: Use base_url in ClientSession and remove host parameter here.
+
+    @property
+    def id(self) -> t.CancellationId:
+        return self._id
+
+    @property
+    def refund(self) -> t.RefundInformation:
+        return self._refund
+
+    async def confirm(self) -> None:
+        path = f"/cancellations/{self._id}/confirm"
+        url = URL.build(scheme="https", host=self._host, path=path)
+        async with self._client.post(url) as resp:
+            if not resp.ok:
+                await raise_error(resp)
+            result = await resp.json()
+            self._refund = result["refundInformation"]
+
+    async def recreate(self) -> None:
+        if self._confirmed:
+            raise RuntimeError("Booking already confirmed")
+
+        url = URL.build(scheme="https", host=self._host, path="/cancellations/request")
+        body = {"bookingId": self._booking_id}
+        async with self._client.post(url, json=body) as resp:
+            if not resp.ok:
+                await raise_error(resp)
+            result = await resp.json()
+            self._id = result["id"]
+            self._refund = result["refundInformation"]
+
+
 class ResultsIterator(Generic[_T]):
     def __init__(self, client: ClientSession, scheduler: aiojobs.Scheduler, next_url: URL | str):
         self._client = client
@@ -49,6 +105,11 @@ class ResultsIterator(Generic[_T]):
         self._results: deque[_T] = deque()
         self._task: aiojobs.Job[None] | None = None
         self._next = next_url
+        self._id = str(next_url)
+
+    @property
+    def id(self) -> str:
+        return base64.urlsafe_b64encode(self._id.encode()).decode()
 
     async def start(self) -> None:
         assert self._next and not self._task
@@ -87,62 +148,6 @@ class ResultsIterator(Generic[_T]):
         return self._results.popleft()
 
 
-class Booking:
-    _id: t.BookingId
-
-    def __init__(self, client: ClientSession, offer: t.OfferId, passengers: tuple[t.Passenger, ...], host: str = PROD):
-        self._client = client
-        self._host = host  # TODO: Use base_url in ClientSession and remove host parameter here.
-        self._offer = offer
-        self._passengers = passengers
-        self._confirmed = False
-
-    @property
-    def confirmed(self) -> bool:
-        return self._confirmed
-
-    @property
-    def id(self) -> t.BookingId:
-        return self._id
-
-    @property
-    def passengers(self) -> tuple[t.Passenger, ...]:
-        return self._passengers
-
-    @property
-    def price(self) -> tuple[str, str]:
-        return self._price
-
-    async def confirm(self) -> None:
-        url = URL.build(scheme="https", host=self._host, path="/bookings")
-        body = {"offerId": self._offer, "passengers": self._passengers}
-        async with self._client.post(url, json=body) as resp:
-            if not resp.ok:
-                await raise_error(resp)
-
-            result = await resp.json()
-            self._id = result["id"]
-            self._passengers = result["passengers"]
-            self._price = (result["price"]["amount"], result["price"]["currency"])
-            self._confirmed = True
-
-    async def refresh(self) -> None:
-        if self._confirmed:
-            raise RuntimeError("Booking already confirmed")
-
-        url = URL.build(scheme="https", host=self._host, path="/bookings")
-        body = {"offerId": self._offer, "passengers": self._passengers}
-        #print(json.dumps(body, cls=CustomEncoder))
-        async with self._client.post(url, json=body) as resp:
-            if not resp.ok:
-                await raise_error(resp)
-
-            result = await resp.json()
-            self._id = result["id"]
-            self._passengers = result["passengers"]
-            self._price = (result["price"]["amount"], result["price"]["currency"])
-
-
 class JunctionClient:
     '''
     This is the JunctionClient. Use this class to make calls to the JunctionAPI. 
@@ -151,6 +156,13 @@ class JunctionClient:
     def __init__(self, api_key: str, host: str = PROD):
         self._api_key = api_key
         self._host = host
+
+    async def get_place(self, place_id: t.PlaceId) -> t.Place:
+        url = URL.build(scheme="https", host=self._host, path=f"/places/{place_id}")
+        async with self._client.get(url) as resp:
+            if not resp.ok:
+                await raise_error(resp)
+            return await resp.json()
 
     def search_places(
         self,
@@ -189,7 +201,7 @@ class JunctionClient:
         async with self._client.post(url, json=query) as resp:
             if not resp.ok:
                 await raise_error(resp)
-            next_url = resp.headers["Location"]
+            next_url = URL(resp.headers["Location"], encoded=True).extend_query(expand="place")
         return ResultsIterator[t.FlightOffer](self._client, self._scheduler, next_url)
 
     async def train_search(
@@ -208,13 +220,50 @@ class JunctionClient:
         async with self._client.post(url, json=query) as resp:
             if not resp.ok:
                 await raise_error(resp)
-            next_url = resp.headers["Location"]
+            next_url = URL(resp.headers["Location"], encoded=True).extend_query(expand="place")
         return ResultsIterator[t.TrainOffer](self._client, self._scheduler, next_url)
 
-    async def create_booking(self, offer: t.OfferId, passengers: Iterable[t.Passenger]) -> Booking:
-        booking = Booking(self._client, offer, tuple(passengers))
-        await booking.refresh()
-        return booking
+    def get_train_offers(self, search_id: Any, outbound: t.TrainOfferId | None = None) -> ResultsIterator:
+        query = {"page[limit]": 100, "expand": "place"}
+        if outbound:
+            query["trainOfferId"] = outbound
+        #path = f"/train-searches/{search_id}/offers"
+        #url = URL.build(scheme="https", host=self._host, path=path, query=query)
+        url = URL(base64.urlsafe_b64decode(search_id.encode()).decode(), encoded=True).extend_query(query)
+        return ResultsIterator(self._client, self._scheduler, url)
+
+    async def search_from_id(self, search_id: Any) -> ResultsIterator:
+        return ResultsIterator(self._client, self._scheduler, base64.urlsafe_b64decode(search_id.encode()).decode())
+
+    async def create_booking(self, offer: t.OfferId, passengers: Iterable[t.Passenger]) -> Any:
+        url = URL.build(scheme="https", host=self._host, path="/bookings")
+        body = {"offerId": offer, "passengers": passengers}
+        async with self._client.post(url, json=body) as resp:
+            if not resp.ok:
+                await raise_error(resp)
+            return await resp.json()
+
+    async def confirm_booking(self, booking_id: t.BookingId, fulfillment: Sequence[tuple[t.DeliveryOption, int]]) -> t.BookingPaymentStatus:
+        url = URL.build(scheme="https", host=self._host, path=f"/bookings/{booking_id}/confirm")
+        body = {"fulfillmentChoices": tuple({"deliveryOption": d, "segmentSequence": s} for d, s in fulfillment)}
+        async with self._client.post(url, json=body) as resp:
+            if not resp.ok:
+                await raise_error(resp)
+
+            result = await resp.json()
+        return result["paymentStatus"]
+
+    async def get_booking(self, booking_id: t.BookingId) -> Any:
+        url = URL.build(scheme="https", host=self._host, path=f"/bookings/{booking_id}")
+        async with self._client.get(url) as resp:
+            if not resp.ok:
+                await raise_error(resp)
+            return await resp.json()
+
+    async def cancel_booking(self, booking_id: t.BookingId) -> Cancellation:
+        cancellation = Cancellation(self._client, booking_id, host=self._host)
+        await cancellation.recreate()
+        return cancellation
 
     async def __aenter__(self) -> Self:
         self._client = ClientSession(headers={"x-api-key": self._api_key}, json_serialize=partial(json.dumps, cls=CustomEncoder))

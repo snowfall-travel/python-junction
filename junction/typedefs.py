@@ -1,12 +1,17 @@
 from collections.abc import Sequence
 from datetime import date
-from typing import Literal, NewType, NotRequired, TypedDict
+from typing import Any, Literal, NewType, NotRequired, TypedDict
 
 
 BookingId = NewType("BookingId", str)
+BookingPaymentStatus = Literal["requested", "confirmed"]
+BookingStatus = Literal["pending", "confirmed", "rejected", "not-ticketed", "error",
+                        "cancelled", "fulfilled"]
+CancellationId = NewType("CancellationId", str)
 CountryCode = NewType("CountryCode", str)  # 2 character ISO 3166-1
 Currency = NewType("Currency", str)  # 3 character ISO 4217
 DateTime = NewType("DateTime", str)  # RFC 3339
+DeliveryOption = Literal["electronic-ticket", "kiosk-collect"]
 FlightOfferId = NewType("FlightOfferId", str)
 IataCode = NewType("IataCode", str)  # [A-Z]{3}
 PlaceId = NewType("PlaceId", str)
@@ -107,6 +112,17 @@ class FlightOffer(_Offer):
 class TrainOffer(_Offer):
     id: TrainOfferId
     segments: list[_TrainSegment]
+    metadata: dict[str, Any]
+
+
+class FareRule(TypedDict):
+    title: str
+    body: str
+
+
+class Fulfillment(TypedDict):
+    deliveryOptions: DeliveryOption
+    segmentSequence: int
 
 
 class _Address(TypedDict):
@@ -130,6 +146,18 @@ class Passenger(TypedDict):
     lastName: str
     gender: Literal["male", "female"]
     email: str
-    phoneNumber: str
-    passportInformation: _PassportInformation
+    phoneNumber: NotRequired[str]
+    passportInformation: _PassportInformation | None
     residentialAddress: _Address
+
+
+class RefundInformation(TypedDict):
+    status: Literal["requested", "confirmed"]
+    bookingPrice: _Price
+    refundAmount: _Price
+
+
+class Ticket(TypedDict):
+    status: Literal["pending", "fulfilled"]
+    ticketUrl: str | None
+    collectionReference: str | None
